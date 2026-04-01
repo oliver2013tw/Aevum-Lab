@@ -1,407 +1,242 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AEVUM LAB</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500;800&display=swap" rel="stylesheet">
+  <title>Master Hub | System Overview</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-    :root {
-      --bg:           #050505;
-      --section-bg:   #0b0b0b;
-      --glass-bg:     rgba(255,255,255,0.07);
-      --glass-border: rgba(255,255,255,0.28);
-      --glass-hover:  rgba(255,255,255,0.11);
-      --sep:          rgba(255,255,255,0.07);
-      --text:         #ffffff;
-      --dim:          rgba(255,255,255,0.38);
-      --dimmer:       rgba(255,255,255,0.18);
-      --pad:          clamp(20px, 5vw, 56px);
+    /* 基礎重置 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
-
-    /* Lock the viewport — NO rubber-band / over-scroll */
-    html, body { height: 100%; overflow: hidden; }
 
     body {
-      background: var(--bg);
-      color: var(--text);
       font-family: 'JetBrains Mono', monospace;
+      background-color: #050505;
+      color: #ffffff;
+      /* 防止手機端過度捲動 (Overscroll) */
+      overscroll-behavior: none;
+      height: 100vh;
+      overflow: hidden;
+      /* 高科技感微弱網格背景 */
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
     }
 
-    /* ══════════════════════════════════════
-       LOADER
-    ══════════════════════════════════════ */
-    #loader {
-      position: fixed; inset: 0; z-index: 9999;
-      background: var(--bg);
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      transition: opacity .9s ease .2s, visibility .9s ease .2s;
-    }
-    #loader.done { opacity: 0; visibility: hidden; pointer-events: none; }
-
-    .gl-wrap { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
-    .gl-h { position:absolute; width:100%; height:1px; background:rgba(255,255,255,.04); transform:scaleX(0); animation:lh 1.1s cubic-bezier(.16,1,.3,1) forwards; }
-    .gl-v { position:absolute; height:100%; width:1px;  background:rgba(255,255,255,.04); transform:scaleY(0); animation:lv 1.1s cubic-bezier(.16,1,.3,1) forwards; }
-    .gl-h:nth-child(1){top:20%;animation-delay:.08s} .gl-h:nth-child(2){top:50%;animation-delay:.13s} .gl-h:nth-child(3){top:80%;animation-delay:.18s}
-    .gl-v:nth-child(4){left:15%;animation-delay:.08s} .gl-v:nth-child(5){left:50%;animation-delay:.13s} .gl-v:nth-child(6){left:85%;animation-delay:.18s}
-    @keyframes lh{to{transform:scaleX(1)}} @keyframes lv{to{transform:scaleY(1)}}
-
-    .corner { position:absolute; width:20px; height:20px; opacity:0; animation:ci .4s ease forwards; }
-    .corner::before,.corner::after { content:''; position:absolute; background:rgba(255,255,255,.35); }
-    .corner::before{width:100%;height:1px;top:0;left:0} .corner::after{width:1px;height:100%;top:0;left:0}
-    .corner.tl{top:28px;left:28px;animation-delay:.5s}
-    .corner.tr{top:28px;right:28px;transform:rotate(90deg);animation-delay:.55s}
-    .corner.bl{bottom:28px;left:28px;transform:rotate(-90deg);animation-delay:.6s}
-    .corner.br{bottom:28px;right:28px;transform:rotate(180deg);animation-delay:.65s}
-    @keyframes ci{from{opacity:0;scale:.5}to{opacity:1;scale:1}}
-
-    .ld-brand {
-      background:rgba(255,255,255,.03); backdrop-filter:blur(15px);
-      border:1px solid rgba(255,255,255,.1);
-      padding:20px 40px; position:relative; overflow:hidden;
-      opacity:0; transform:translateY(10px);
-      animation:brand-in .65s cubic-bezier(.16,1,.3,1) .65s forwards;
-    }
-    @keyframes brand-in{to{opacity:1;transform:translateY(0)}}
-    .ld-brand::after {
-      content:''; position:absolute; top:-1px; left:-1px; right:-1px; height:1px;
-      background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);
-      animation:scan 1.8s ease 1.4s forwards; opacity:0;
-    }
-    @keyframes scan{0%{top:-1px;opacity:1}100%{top:calc(100% + 1px);opacity:.2}}
-    .ld-logo { font-size:24px; text-transform:uppercase; letter-spacing:.15em; user-select:none; }
-    .ld-logo .bold  { font-weight:800; }
-    .ld-logo .light { font-weight:300; opacity:.7; margin-left:8px; }
-
-    .ld-prog { margin-top:40px; display:flex; flex-direction:column; align-items:center; gap:12px; opacity:0; animation:fade-in .5s ease 1.05s forwards; }
-    .ld-track{ width:240px; height:1px; background:rgba(255,255,255,.07); position:relative; overflow:hidden; }
-    .ld-fill { position:absolute; left:0; top:0; height:100%; width:0%; background:rgba(255,255,255,.7); box-shadow:0 0 8px rgba(255,255,255,.35); transition:width .04s linear; }
-    .ld-meta { display:flex; justify-content:space-between; width:240px; }
-    .ld-status{ font-size:9px; font-weight:300; letter-spacing:.2em; color:rgba(255,255,255,.28); text-transform:uppercase; transition:opacity .2s; }
-    .ld-pct  { font-size:9px; font-weight:800; letter-spacing:.1em; color:rgba(255,255,255,.45); }
-    .ld-tag  { position:absolute; bottom:28px; left:50%; transform:translateX(-50%); font-size:9px; font-weight:300; letter-spacing:.3em; color:rgba(255,255,255,.12); text-transform:uppercase; white-space:nowrap; opacity:0; animation:fade-in .5s ease 1.2s forwards; }
-    @keyframes fade-in{to{opacity:1}}
-
-    /* ══════════════════════════════════════
-       PAGE SHELL — flex column, fills viewport
-    ══════════════════════════════════════ */
-    #page {
-      position: fixed; inset: 0;
-      display: flex; flex-direction: column;
-      opacity: 0;
-      transition: opacity .7s ease;
-    }
-    #page.visible { opacity: 1; }
-
-    /* subtle grain */
-    #page::before {
-      content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
-      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-      background-size:180px; opacity:.4;
-    }
-
-    /* ── 1. HEADER ─────────────────────── */
-    header {
-      flex-shrink: 0;
-      position: relative; z-index: 10;
-      height: 60px;
-      padding: 0 var(--pad);
-      display: flex; justify-content: space-between; align-items: center;
-      background: rgba(5,5,5,.98);
-      border-bottom: 1px solid var(--sep);
-    }
-    .h-brand { font-size:15px; text-transform:uppercase; letter-spacing:.15em; user-select:none; }
-    .h-brand .bold  { font-weight:800; }
-    .h-brand .light { font-weight:300; opacity:.5; margin-left:6px; }
-    .h-tag { font-size:9px; font-weight:300; letter-spacing:.28em; color:var(--dimmer); text-transform:uppercase; }
-
-    /* ── 2. HERO BAND ──────────────────── */
-    .hero-band {
-      flex-shrink: 0;
-      position: relative; z-index: 1;
-      background: var(--section-bg);
-      border-bottom: 2px solid var(--sep);
-      padding: clamp(28px, 4.5vh, 52px) var(--pad) clamp(28px, 4.5vh, 52px) calc(var(--pad) + 12px);
-    }
-    /* left accent stripe */
-    .hero-band::before {
-      content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
-      background:linear-gradient(to bottom, transparent, rgba(255,255,255,.25), transparent);
-    }
-    /* bottom glow */
-    .hero-band::after {
-      content:''; position:absolute; bottom:-1px; left:0; right:0; height:1px;
-      background:linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
-    }
-
-    .hero-eyebrow {
-      font-size:9px; font-weight:300; letter-spacing:.35em;
-      color:var(--dimmer); text-transform:uppercase;
-      margin-bottom:12px;
-      display:flex; align-items:center; gap:10px;
-    }
-    .hero-eyebrow::before { content:''; width:18px; height:1px; background:var(--dimmer); }
-
-    .hero-title {
-      font-size:clamp(26px, 4vw, 54px);
-      font-weight:800; line-height:1.05; letter-spacing:-.01em;
-      margin-bottom:12px;
-    }
-    .hero-title span {
-      display:block; font-weight:300; opacity:.35;
-      font-size:.52em; letter-spacing:.06em; margin-top:4px;
-    }
-    .hero-desc {
-      font-size:11px; font-weight:300; line-height:1.85;
-      color:var(--dim); letter-spacing:.04em; max-width:460px;
-    }
-
-    /* ── 3. SECTION BAR ────────────────── */
-    .section-bar {
-      flex-shrink: 0;
-      position: relative; z-index: 1;
-      height: 38px;
-      padding: 0 var(--pad);
-      display: flex; align-items: center; gap: 14px;
-      background: var(--bg);
-      border-bottom: 1px solid var(--sep);
-    }
-    .sb-label { font-size:9px; font-weight:800; letter-spacing:.3em; color:var(--dimmer); text-transform:uppercase; white-space:nowrap; }
-    .sb-line  { flex:1; height:1px; background:rgba(255,255,255,.04); }
-    .sb-count { font-size:9px; font-weight:300; letter-spacing:.18em; color:rgba(255,255,255,.18); }
-
-    /* ── 4. SCROLLABLE APPS AREA ───────── */
-    .apps-scroll {
-      flex: 1;
+    /* 內部捲動容器 */
+    .container {
+      height: 100vh;
       overflow-y: auto;
-      overflow-x: hidden;
-      position: relative; z-index: 1;
-      background: var(--bg);
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255,255,255,.07) transparent;
+      padding: 50px 20px;
+      /* 隱藏原生滾動條以保持極簡 */
+      scrollbar-width: none; 
+      -ms-overflow-style: none;
     }
-    .apps-scroll::-webkit-scrollbar { width:3px; }
-    .apps-scroll::-webkit-scrollbar-track { background:transparent; }
-    .apps-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,.08); border-radius:2px; }
+    .container::-webkit-scrollbar {
+      display: none;
+    }
 
-    #apps-grid {
-      padding: clamp(16px, 2.5vw, 28px) var(--pad);
+    header {
+      max-width: 1100px;
+      margin: 0 auto 50px auto;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding-bottom: 20px;
+      display: flex;
+      align-items: center;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background-color: #fff;
+      margin-right: 15px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    /* RWD 網格系統 */
+    #app-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 25px;
+      max-width: 1100px;
+      margin: 0 auto;
     }
 
-    /* ── FOOTER (inside scroll area) ───── */
-    footer {
-      padding: 20px var(--pad);
-      display: flex; justify-content: space-between; align-items: center;
-      border-top: 1px solid var(--sep);
-      background: rgba(5,5,5,.95);
-    }
-    .foot-brand { font-size:10px; font-weight:800; letter-spacing:.15em; text-transform:uppercase; opacity:.18; }
-    .foot-copy  { font-size:9px; font-weight:300; letter-spacing:.13em; color:var(--dimmer); }
-
-    /* ── APP CARD ──────────────────────── */
+    /* 毛玻璃與銳角卡片設計 */
     .app-card {
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      border-radius: 10px;
-      padding: 24px;
-      display: flex; flex-direction: column; gap: 14px;
-      position: relative; overflow: hidden;
-      transition: background .22s, border-color .22s, transform .22s;
-      opacity: 0; transform: translateY(14px);
-      animation: card-in .45s ease forwards;
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 0; /* 嚴格 0 圓角 */
+      padding: 30px;
+      text-decoration: none;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: all 0.3s ease;
+      overflow: hidden;
+      z-index: 1;
     }
-    .app-card:hover {
-      background: var(--glass-hover);
-      border-color: rgba(255,255,255,.55);
-      transform: translateY(-2px);
-    }
+
+    /* 懸浮時的黑白反轉特效 */
     .app-card::before {
-      content:''; position:absolute; top:0; left:-100%; width:60%; height:1px;
-      background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
-      transition:left .5s ease;
+      content: '';
+      position: absolute;
+      top: 0; 
+      left: 0;
+      width: 0; 
+      height: 100%;
+      background: #ffffff;
+      z-index: -1;
+      transition: width 0.3s cubic-bezier(0.19, 1, 0.22, 1);
     }
-    .app-card:hover::before { left:140%; }
-    @keyframes card-in{to{opacity:1;transform:translateY(0)}}
 
-    .card-index { font-size:9px; font-weight:800; letter-spacing:.2em; color:rgba(255,255,255,.14); }
-    .card-name  { font-size:14px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; line-height:1.2; }
-    .card-desc  { font-size:11px; font-weight:300; line-height:1.8; color:var(--dim); letter-spacing:.03em; flex:1; }
-
-    .card-link {
-      display:inline-flex; align-items:center; gap:8px;
-      font-size:9px; font-weight:800; letter-spacing:.2em; text-transform:uppercase;
-      color:rgba(255,255,255,.5); text-decoration:none;
-      border:1px solid rgba(255,255,255,.1);
-      padding:9px 16px; border-radius:4px; align-self:flex-start;
-      transition:color .18s, border-color .18s, background .18s;
+    .app-card:hover {
+      border-color: #ffffff;
+      color: #000000;
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
     }
-    .card-link:hover { color:#fff; border-color:rgba(255,255,255,.3); background:rgba(255,255,255,.05); }
-    .card-link svg { width:10px; height:10px; opacity:.55; transition:transform .18s, opacity .18s; }
-    .card-link:hover svg { transform:translate(2px,-2px); opacity:1; }
 
-    .skeleton { border-radius:10px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.04); height:200px; animation:pulse 1.6s ease infinite; }
-    @keyframes pulse{0%,100%{opacity:.3}50%{opacity:.65}}
-
-    .msg { grid-column:1/-1; padding:56px 0; text-align:center; font-size:11px; font-weight:300; letter-spacing:.2em; color:var(--dimmer); text-transform:uppercase; }
-
-    /* ══════════════════════════════════════
-       RESPONSIVE
-    ══════════════════════════════════════ */
-    @media (max-width: 480px) {
-      .h-tag { display:none; }
-      .hero-band::before { display:none; }
-      #apps-grid { grid-template-columns: 1fr; }
-      footer { flex-direction:column; gap:6px; text-align:center; }
+    .app-card:hover::before {
+      width: 100%;
     }
-    @media (min-width:481px) and (max-width:768px) {
-      #apps-grid { grid-template-columns: repeat(2,1fr); }
+
+    .app-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      padding-bottom: 15px;
+      transition: border-color 0.3s ease;
+    }
+
+    .app-card:hover .app-title {
+      border-bottom-color: rgba(0, 0, 0, 0.3);
+    }
+
+    .app-desc {
+      font-size: 0.95rem;
+      color: #a0a0a0;
+      flex-grow: 1;
+      margin-bottom: 25px;
+      line-height: 1.6;
+      transition: color 0.3s ease;
+    }
+
+    .app-card:hover .app-desc {
+      color: #333333;
+    }
+
+    .app-meta {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 700;
+    }
+
+    /* 載入與錯誤狀態 */
+    .system-msg {
+      grid-column: 1 / -1;
+      text-align: left;
+      padding: 40px;
+      font-size: 1.2rem;
+      letter-spacing: 2px;
+      border: 1px dashed rgba(255, 255, 255, 0.3);
     }
   </style>
 </head>
 <body>
 
-<!-- ── LOADER ── -->
-<div id="loader">
-  <div class="gl-wrap">
-    <div class="gl-h"></div><div class="gl-h"></div><div class="gl-h"></div>
-    <div class="gl-v"></div><div class="gl-v"></div><div class="gl-v"></div>
-  </div>
-  <div class="corner tl"></div><div class="corner tr"></div>
-  <div class="corner bl"></div><div class="corner br"></div>
+  <div class="container">
+    <header>
+      <span class="status-indicator"></span>
+      <h1>Master Hub // Application Portal</h1>
+    </header>
 
-  <div class="ld-brand">
-    <div class="ld-logo"><span class="bold">Aevum</span><span class="light">Lab</span></div>
-  </div>
-  <div class="ld-prog">
-    <div class="ld-track"><div class="ld-fill" id="ld-fill"></div></div>
-    <div class="ld-meta">
-      <span class="ld-status" id="ld-status">Initializing</span>
-      <span class="ld-pct"    id="ld-pct">0%</span>
+    <div id="app-grid">
+      <div class="system-msg" id="sys-msg">FETCHING_DATA_STREAM...</div>
     </div>
   </div>
-  <div class="ld-tag">AEVUM LAB — System Ready</div>
-</div>
 
-<!-- ── PAGE SHELL ── -->
-<div id="page">
+  <script>
+    const API_URL = 'https://api.sheety.co/faaf2cad729f66229c61ec33daf91164/appsData/工作表1';
+    const grid = document.getElementById('app-grid');
+    const sysMsg = document.getElementById('sys-msg');
 
-  <!-- 1 ▸ HEADER -->
-  <header>
-    <div class="h-brand"><span class="bold">Aevum</span><span class="light">Lab</span></div>
-    <div class="h-tag">Application Suite</div>
-  </header>
+    async function initializePortal() {
+      try {
+        const response = await fetch(API_URL);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const json = await response.json();
+        
+        // 動態取得物件的第一個 key (解決 Sheety 可能將中文鍵值加上 s 的問題)
+        const dataKey = Object.keys(json)[0];
+        const appsData = json[dataKey];
 
-  <!-- 2 ▸ HERO BAND -->
-  <section class="hero-band">
-    <div class="hero-eyebrow">Services &amp; Applications</div>
-    <h1 class="hero-title">Our Tools.<span>Built for what matters.</span></h1>
-    <p class="hero-desc">A curated suite of web applications crafted by Aevum Lab. Precise, purposeful, and always evolving.</p>
-  </section>
+        if (!appsData || appsData.length === 0) {
+          grid.innerHTML = '<div class="system-msg">ERR: NO_RECORDS_FOUND</div>';
+          return;
+        }
 
-  <!-- 3 ▸ SECTION BAR -->
-  <div class="section-bar">
-    <span class="sb-label">Applications</span>
-    <div class="sb-line"></div>
-    <span class="sb-count" id="app-count">—</span>
-  </div>
+        // 清除載入訊息
+        grid.innerHTML = '';
 
-  <!-- 4 ▸ SCROLLABLE AREA -->
-  <div class="apps-scroll">
-    <div id="apps-grid">
-      <div class="skeleton"></div>
-      <div class="skeleton"></div>
-      <div class="skeleton"></div>
-    </div>
+        // 渲染應用清單
+        appsData.forEach(app => {
+          // 容錯處理：對應 Google Sheets 中可能的直行名稱 (中英文皆可)
+          const name = app.name || app.名稱 || app.title || 'UNKNOWN_APP';
+          const link = app.url || app.網址 || app.連結 || '#';
+          const desc = app.description || app.描述 || 'No description data available in database.';
+          const category = app.category || app.分類 || 'SYS_MODULE';
 
-    <footer>
-      <div class="foot-brand">Aevum Lab</div>
-      <div class="foot-copy">&copy; <span id="yr"></span> Aevum Lab. All rights reserved.</div>
-    </footer>
-  </div>
+          const card = document.createElement('a');
+          card.href = link;
+          card.className = 'app-card';
+          card.target = '_blank';
+          card.rel = 'noopener noreferrer';
+          
+          card.innerHTML = `
+            <div class="app-title">${name}</div>
+            <div class="app-desc">${desc}</div>
+            <div class="app-meta">[ ${category} ]</div>
+          `;
+          
+          grid.appendChild(card);
+        });
 
-</div>
-
-<!-- ── Firebase ── -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, getDocs, orderBy, query }
-    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey:            "AIzaSyAd_st_rjiXeuqvtOuh2ZTdVv0YDwkYsS0",
-    authDomain:        "aevum-services.firebaseapp.com",
-    projectId:         "aevum-services",
-    storageBucket:     "aevum-services.firebasestorage.app",
-    messagingSenderId: "323328565478",
-    appId:             "1:323328565478:web:e87877ffba360b8be19b27",
-    measurementId:     "G-V2T8BHHZSC"
-  };
-
-  const fbApp = initializeApp(firebaseConfig);
-  const db    = getFirestore(fbApp);
-
-  /* loader */
-  const fillEl = document.getElementById('ld-fill');
-  const pctEl  = document.getElementById('ld-pct');
-  const statEl = document.getElementById('ld-status');
-  const loader = document.getElementById('loader');
-  const pageEl = document.getElementById('page');
-  const stages = [{at:20,label:'Initializing'},{at:50,label:'Connecting'},{at:80,label:'Loading Apps'},{at:100,label:'Ready'}];
-  let startTs  = null;
-  const DUR    = 2600;
-  const ease   = t => t<.5?8*t**4:1-(-2*t+2)**4/2;
-
-  function tickLoader(ts){
-    if(!startTs) startTs=ts;
-    const p=Math.min((ts-startTs)/DUR,1), v=Math.round(ease(p)*100);
-    fillEl.style.width=v+'%'; pctEl.textContent=v+'%';
-    for(let i=stages.length-1;i>=0;i--){
-      if(v>=stages[i].at && statEl.textContent!==stages[i].label){
-        statEl.style.opacity='0';
-        const l=stages[i].label;
-        setTimeout(()=>{statEl.textContent=l;statEl.style.opacity='1';},180);
-        break;
+      } catch (error) {
+        console.error('Core Connection Failed:', error);
+        grid.innerHTML = '<div class="system-msg" style="color:#ff3333; border-color:#ff3333;">ERR: FETCH_SEQUENCE_FAILED</div>';
       }
     }
-    if(p<1) requestAnimationFrame(tickLoader);
-    else setTimeout(()=>{loader.classList.add('done');setTimeout(()=>pageEl.classList.add('visible'),400);},300);
-  }
-  setTimeout(()=>requestAnimationFrame(tickLoader),1050);
 
-  document.getElementById('yr').textContent=new Date().getFullYear();
-
-  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-
-  async function loadApps(){
-    const grid=document.getElementById('apps-grid');
-    try{
-      const snap=await getDocs(query(collection(db,'apps'),orderBy('order')));
-      grid.innerHTML='';
-      if(snap.empty){ grid.innerHTML='<div class="msg">No applications found.</div>'; document.getElementById('app-count').textContent='0 apps'; return; }
-      document.getElementById('app-count').textContent=snap.size+(snap.size===1?' app':' apps');
-      snap.forEach((doc,idx)=>{
-        const d=doc.data(), card=document.createElement('div');
-        card.className='app-card'; card.style.animationDelay=(idx*70)+'ms';
-        card.innerHTML=`
-          <div class="card-index">${String(idx+1).padStart(2,'0')}</div>
-          <div class="card-name">${esc(d.name??'Untitled')}</div>
-          <div class="card-desc">${esc(d.description??'')}</div>
-          ${d.url?`<a class="card-link" href="${esc(d.url)}" target="_blank" rel="noopener">Launch<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10L10 2M5 2h5v5"/></svg></a>`:''}`;
-        grid.appendChild(card);
-      });
-    }catch(err){
-      console.error(err);
-      grid.innerHTML=`<div class="msg">Failed to load.<br><small style="opacity:.35">${err.message}</small></div>`;
-      document.getElementById('app-count').textContent='error';
-    }
-  }
-  loadApps();
-</script>
+    // 啟動資料抓取
+    initializePortal();
+  </script>
 </body>
 </html>
