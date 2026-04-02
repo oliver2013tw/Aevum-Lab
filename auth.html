@@ -1,389 +1,241 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Aevum Auth | 整合驗證系統</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-  <style>
-    /* =========================================
-       1. 全局重置與防過度捲動 (RWD & Overscroll)
-       ========================================= */
-    :root {
-      --primary: #00f2fe;
-      --secondary: #4facfe;
-      --bg-dark: #0f172a;
-      --glass-bg: rgba(255, 255, 255, 0.05);
-      --glass-border: rgba(255, 255, 255, 0.1);
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Aevum Auth</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00d2ff;
+            --secondary: #3a7bd5;
+            --bg: #05070a;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --font-main: 'JetBrains Mono', 'Noto Sans TC', monospace;
+        }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Inter', sans-serif;
-    }
+        /* 基礎設置：防過度捲動 */
+        * {
+            box-sizing: border-box;
+            margin: 0; padding: 0;
+            font-family: var(--font-main);
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    html, body {
-      width: 100%;
-      height: 100vh;
-      background: var(--bg-dark);
-      background-image: radial-gradient(circle at 15% 50%, rgba(79, 172, 254, 0.15), transparent 25%),
-                        radial-gradient(circle at 85% 30%, rgba(0, 242, 254, 0.15), transparent 25%);
-      color: var(--text-main);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overscroll-behavior: none; /* 防止過度捲動 */
-      overflow: hidden;
-    }
+        body, html {
+            width: 100%; height: 100%;
+            background-color: var(--bg);
+            color: #fff;
+            overflow: hidden; 
+            overscroll-behavior: none; /* 關鍵：防止手機端與 PakePlus 下拉回彈 */
+        }
 
-    /* =========================================
-       2. 毛玻璃卡片 UI (Glassmorphism)
-       ========================================= */
-    .container {
-      width: 100%;
-      max-width: 420px;
-      padding: 2.5rem;
-      background: var(--glass-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--glass-border);
-      border-radius: 24px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      transition: all 0.3s ease;
-      position: relative;
-    }
+        /* 高科技背景感 */
+        body::before {
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 20% 20%, #1a2a6c33, transparent),
+                        radial-gradient(circle at 80% 80%, #b21f1f22, transparent);
+            z-index: -1;
+        }
 
-    .header {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
+        #app {
+            display: flex; justify-content: center; align-items: center;
+            width: 100%; height: 100%; padding: 20px;
+        }
 
-    .header h1 {
-      font-size: 1.8rem;
-      font-weight: 600;
-      background: linear-gradient(to right, var(--primary), var(--secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 0.5rem;
-    }
+        /* 板塊優化：外框 90 度尖角，內件圓角 */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            border-radius: 0px; /* 依照要求：維持 90 度直角外框 */
+            width: 100%; max-width: 420px;
+            padding: 40px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
 
-    .header p {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
+        h1 { font-size: 22px; font-weight: 700; letter-spacing: 2px; margin-bottom: 8px; text-transform: uppercase; color: var(--primary); }
+        .subtitle { color: #666; font-size: 13px; margin-bottom: 30px; }
 
-    /* =========================================
-       3. 表單與按鈕美化
-       ========================================= */
-    .form-group {
-      margin-bottom: 1.5rem;
-      position: relative;
-    }
+        /* 輸入框 */
+        .input-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; font-size: 11px; color: #888; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; }
+        input {
+            width: 100%; padding: 14px;
+            background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border);
+            border-radius: 0; color: #fff; font-size: 15px; outline: none;
+            transition: 0.3s;
+        }
+        input:focus { border-color: var(--primary); background: rgba(0,210,255,0.05); }
 
-    .form-group input {
-      width: 100%;
-      padding: 1rem 1.2rem;
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid var(--glass-border);
-      border-radius: 12px;
-      color: var(--text-main);
-      font-size: 1rem;
-      outline: none;
-      transition: border-color 0.3s ease;
-    }
+        /* 按鈕：依照要求，按鈕需有圓角 */
+        .btn {
+            width: 100%; padding: 14px; border: none; border-radius: 12px; /* 圓角按鈕 */
+            font-size: 15px; font-weight: 700; cursor: pointer; transition: 0.3s;
+            margin-top: 10px; color: #fff;
+        }
+        .btn-primary { background: linear-gradient(135deg, var(--secondary), var(--primary)); box-shadow: 0 8px 15px rgba(0,210,255,0.2); }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-ghost { background: transparent; border: 1px solid var(--glass-border); color: #888; font-size: 13px; margin-top: 20px; }
 
-    .form-group input:focus {
-      border-color: var(--primary);
-      background: rgba(0, 0, 0, 0.4);
-    }
+        /* 狀態列 */
+        .status-bar { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--primary); background: rgba(0,210,255,0.1); padding: 4px 12px; margin-bottom: 20px; }
+        .dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 8px var(--primary); animation: blink 1.5s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-    .btn {
-      width: 100%;
-      padding: 1rem;
-      border: none;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--secondary), var(--primary));
-      color: white;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
+        /* 驗證彈窗 Overlay */
+        #overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        #overlay.active { display: flex; }
+        .modal {
+            background: #0d1117; border: 1px solid var(--primary);
+            width: 85%; max-width: 350px; padding: 30px; text-align: center;
+        }
 
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 20px -10px var(--primary);
-    }
+        .hidden { display: none !important; }
 
-    .btn:active {
-      transform: translateY(0);
-    }
-
-    .btn:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-    }
-
-    .toggle-text {
-      text-align: center;
-      margin-top: 1.5rem;
-      font-size: 0.9rem;
-      color: var(--text-muted);
-    }
-
-    .toggle-text span {
-      color: var(--primary);
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .toggle-text span:hover {
-      text-decoration: underline;
-    }
-
-    .alert {
-      padding: 0.8rem;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-      font-size: 0.85rem;
-      text-align: center;
-      display: none;
-    }
-    .alert.error { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; display: block; }
-    .alert.success { background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; color: #86efac; display: block; }
-
-    /* 隱藏區塊用 */
-    .hidden { display: none !important; }
-
-    /* 登入後的儀表板 */
-    #dashboard-view { text-align: center; }
-    .profile-card {
-      background: rgba(0,0,0,0.2);
-      padding: 1rem;
-      border-radius: 12px;
-      margin: 1.5rem 0;
-      border: 1px solid var(--glass-border);
-      word-break: break-all;
-    }
-
-    /* RWD 微調 */
-    @media (max-width: 480px) {
-      .container { border-radius: 0; border: none; height: 100vh; display: flex; flex-direction: column; justify-content: center; background: transparent; backdrop-filter: none; box-shadow: none; }
-    }
-  </style>
+        /* RWD 優化 */
+        @media (max-width: 480px) {
+            .card { border: none; height: 100vh; max-width: none; background: transparent; display: flex; flex-direction: column; justify-content: center; }
+        }
+    </style>
 </head>
 <body>
 
-  <div class="container" id="main-container">
-
-    <div id="auth-view">
-      <div class="header">
-        <h1 id="view-title">Aevum Auth</h1>
-        <p id="view-subtitle">請登入以繼續</p>
-      </div>
-
-      <div id="message-box" class="alert hidden"></div>
-
-      <form id="auth-form">
-        <div class="form-group">
-          <input type="email" id="email" placeholder="電子郵件" required autocomplete="email">
+<div id="app">
+    <div id="view-login" class="card">
+        <h1>Aevum Services</h1>
+        <p class="subtitle">進入 Aevum 數據生態系</p>
+        <div class="input-group">
+            <label>Identification (Email)</label>
+            <input type="email" id="email" placeholder="name@aevum.lab">
         </div>
-        <div class="form-group">
-          <input type="password" id="password" placeholder="密碼" required autocomplete="current-password">
+        <div class="input-group">
+            <label>Access Key (Password)</label>
+            <input type="password" id="password" placeholder="••••••••">
         </div>
-        <button type="submit" class="btn" id="submit-btn">登入</button>
-      </form>
-
-      <div class="toggle-text">
-        <span id="toggle-mode-btn">還沒有帳號？點此註冊</span>
-      </div>
+        <button class="btn btn-primary" id="login-btn">驗證並登入</button>
+        <button class="btn btn-ghost" id="mode-btn">切換至註冊模式</button>
     </div>
 
-    <div id="dashboard-view" class="hidden">
-      <div class="header">
-        <h1>歡迎回來</h1>
-        <p>Aevum 整合服務平台</p>
-      </div>
-      <div class="profile-card">
-        <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem;">Aevum-Auth UID:</p>
-        <p id="user-uid" style="font-weight: 600; margin-bottom: 1rem;">載入中...</p>
-        <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem;">Aevum-Services 資料:</p>
-        <p id="user-role" style="color: var(--primary);">載入中...</p>
-      </div>
-      <button class="btn" id="logout-btn" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">登出</button>
+    <div id="view-dash" class="card hidden">
+        <div class="status-bar"><div class="dot"></div>系統已就緒</div>
+        <h1>控制中心</h1>
+        <p id="user-mail" style="font-size: 14px; color: #aaa; margin-bottom: 30px;"></p>
+        
+        <div style="border-left: 2px solid var(--primary); padding-left: 15px; text-align: left; margin-bottom: 30px;">
+            <p style="font-size: 12px; color: #555;">連線協定</p>
+            <p style="font-size: 14px;">RTDB 實時同步中</p>
+        </div>
+
+        <button class="btn btn-primary" id="mock-btn" style="background: rgba(255,255,255,0.05); color: #fff;">發起模擬驗證請求</button>
+        <button class="btn btn-ghost" id="logout-btn" style="border-color: rgba(255,75,43,0.3); color: #ff4b2b;">中斷所有連線並登出</button>
     </div>
+</div>
 
-  </div>
+<div id="overlay">
+    <div class="modal">
+        <h2 style="color: var(--primary); margin-bottom: 15px;">🛡️ 安全授權</h2>
+        <p style="font-size: 14px; color: #888; line-height: 1.6;">偵測到來自 <b id="req-site" style="color: #fff;">系統外網</b> 的訪問請求，是否允許授權？</p>
+        <button class="btn btn-primary" id="approve-btn" style="margin-top: 25px;">確認授權</button>
+        <button class="btn btn-ghost" id="deny-btn">拒絕訪問</button>
+    </div>
+</div>
 
-  <script type="module">
-    // 引入 Firebase 核心與需要的服務 (使用最新的模組化 SDK)
+<script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-    import { getDatabase, ref as rtdbRef, set as rtdbSet } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getDatabase, ref, onValue, set, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
-    // --- 專案 1: Aevum-Auth (負責驗證與 RTDB 狀態) ---
-    const authConfig = {
-      apiKey: "AIzaSyBOAIyQgE1_IvtFPNbC9tHG9wwGwz1gO9E",
-      authDomain: "aevum-auth.firebaseapp.com",
-      databaseURL: "https://aevum-auth-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "aevum-auth",
-      storageBucket: "aevum-auth.firebasestorage.app",
-      messagingSenderId: "764527544507",
-      appId: "1:764527544507:web:09fd4a19f5ac6b3da3c19e",
-      measurementId: "G-5JVXGZ1QQS"
+    // 兩組專案配置
+    const cfgAuth = {
+        apiKey: "AIzaSyBOAIyQgE1_IvtFPNbC9tHG9wwGwz1gO9E",
+        authDomain: "aevum-auth.firebaseapp.com",
+        databaseURL: "https://aevum-auth-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "aevum-auth"
     };
 
-    // --- 專案 2: Aevum-Services (負責業務邏輯與使用者資料 Firestore) ---
-    const servicesConfig = {
-      apiKey: "AIzaSyAd_st_rjiXeuqvtOuh2ZTdVv0YDwkYsS0",
-      authDomain: "aevum-services.firebaseapp.com",
-      projectId: "aevum-services",
-      storageBucket: "aevum-services.firebasestorage.app",
-      messagingSenderId: "323328565478",
-      appId: "1:323328565478:web:e87877ffba360b8be19b27",
-      measurementId: "G-V2T8BHHZSC"
+    const cfgServ = {
+        apiKey: "AIzaSyAd_st_rjiXeuqvtOuh2ZTdVv0YDwkYsS0",
+        authDomain: "aevum-services.firebaseapp.com",
+        projectId: "aevum-services"
     };
 
-    // 【核心邏輯】：初始化兩個獨立的 App 實例
-    const appAuth = initializeApp(authConfig, "AppAuth"); 
-    const appServices = initializeApp(servicesConfig, "AppServices");
+    // 初始化
+    const appA = initializeApp(cfgAuth, "A");
+    const appS = initializeApp(cfgServ, "S");
+    const auth = getAuth(appS); // 從 Services 登入
+    const rtdb = getDatabase(appA); // 監聽 Auth 的 RTDB
 
-    // 取得各自的服務實例
-    const auth = getAuth(appAuth);           // 驗證歸 Auth 管
-    const dbRTDB = getDatabase(appAuth);     // RTDB 歸 Auth 管 (若用於即時連線狀態)
-    const dbFirestore = getFirestore(appServices); // 業務資料歸 Services 管
+    let curUID = null;
+    let isLogin = true;
 
-    // --- UI 元素綁定 ---
-    const authView = document.getElementById('auth-view');
-    const dashboardView = document.getElementById('dashboard-view');
-    const authForm = document.getElementById('auth-form');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const submitBtn = document.getElementById('submit-btn');
-    const toggleModeBtn = document.getElementById('toggle-mode-btn');
-    const viewTitle = document.getElementById('view-title');
-    const viewSubtitle = document.getElementById('view-subtitle');
-    const messageBox = document.getElementById('message-box');
-    const logoutBtn = document.getElementById('logout-btn');
-
-    let isLoginMode = true;
-
-    // --- 輔助函數：顯示訊息 ---
-    const showMessage = (msg, type = 'error') => {
-      messageBox.textContent = msg;
-      messageBox.className = `alert ${type}`;
-      setTimeout(() => { messageBox.className = 'alert hidden'; }, 5000);
+    // 核心監聽邏輯
+    const startSync = (uid) => {
+        onValue(ref(rtdb, `verification_requests/${uid}`), (snap) => {
+            const data = snap.val();
+            if (data && data.status === 'pending') {
+                document.getElementById('req-site').textContent = data.site || "未授權站點";
+                document.getElementById('overlay').classList.add('active');
+            } else {
+                document.getElementById('overlay').classList.remove('active');
+            }
+        });
+        onDisconnect(ref(rtdb, `verification_requests/${uid}`)).remove();
     };
 
-    // --- 切換 登入/註冊 模式 ---
-    toggleModeBtn.addEventListener('click', () => {
-      isLoginMode = !isLoginMode;
-      if (isLoginMode) {
-        viewTitle.textContent = "Aevum Auth";
-        viewSubtitle.textContent = "請登入以繼續";
-        submitBtn.textContent = "登入";
-        toggleModeBtn.textContent = "還沒有帳號？點此註冊";
-      } else {
-        viewTitle.textContent = "建立帳號";
-        viewSubtitle.textContent = "加入 Aevum 網路";
-        submitBtn.textContent = "註冊";
-        toggleModeBtn.textContent = "已有帳號？點此登入";
-      }
-      messageBox.className = 'alert hidden';
-    });
-
-    // --- 處理表單提交 (登入或註冊) ---
-    authForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = emailInput.value.trim();
-      const password = passwordInput.value.trim();
-
-      submitBtn.disabled = true;
-      submitBtn.textContent = "處理中...";
-
-      try {
-        if (isLoginMode) {
-          // 執行登入 (針對 appAuth)
-          const userCredential = await signInWithEmailAndPassword(auth, email, password);
-
-          // (可選) 在 Aevum-Auth 的 RTDB 記錄最後登入時間
-          await rtdbSet(rtdbRef(dbRTDB, 'login_logs/' + userCredential.user.uid), {
-            last_login: new Date().toISOString(),
-            client: "web"
-          });
-
-          showMessage("登入成功！", "success");
+    // 狀態切換
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            curUID = user.uid;
+            document.getElementById('view-login').classList.add('hidden');
+            document.getElementById('view-dash').classList.remove('hidden');
+            document.getElementById('user-mail').textContent = user.email;
+            startSync(user.uid);
         } else {
-          // 執行註冊 (針對 appAuth)
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          const user = userCredential.user;
-
-          // 【跨專案整合】：在 Aevum-Services 的 Firestore 建立使用者業務資料夾
-          await setDoc(doc(dbFirestore, "users_profile", user.uid), {
-            email: user.email,
-            role: "standard_user",
-            created_at: new Date().toISOString(),
-            status: "active"
-          });
-
-          showMessage("註冊成功並已初始化業務資料！", "success");
+            document.getElementById('view-login').classList.remove('hidden');
+            document.getElementById('view-dash').classList.add('hidden');
+            document.getElementById('overlay').classList.remove('active');
         }
-      } catch (error) {
-        console.error("Auth Error:", error);
-        let errorMsg = "發生錯誤。";
-        if(error.code === 'auth/email-already-in-use') errorMsg = "此信箱已被註冊。";
-        if(error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') errorMsg = "帳號或密碼錯誤。";
-        if(error.code === 'auth/weak-password') errorMsg = "密碼長度需至少 6 個字元。";
-        showMessage(errorMsg, "error");
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = isLoginMode ? "登入" : "註冊";
-      }
     });
 
-    // --- 處理登出 ---
-    logoutBtn.addEventListener('click', async () => {
-      try {
-        await signOut(auth);
-      } catch (error) {
-        console.error("Logout Error:", error);
-      }
-    });
-
-    // --- 監聽驗證狀態改變 (Auth State Listener) ---
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // 使用者已登入，切換 UI
-        authView.classList.add('hidden');
-        dashboardView.classList.remove('hidden');
-        document.getElementById('user-uid').textContent = user.uid;
-        document.getElementById('user-role').textContent = "讀取資料中...";
-
-        // 從 Aevum-Services 撈取業務資料
+    // 事件監聽
+    document.getElementById('login-btn').onclick = async () => {
+        const e = document.getElementById('email').value;
+        const p = document.getElementById('password').value;
+        if(!e || !p) return alert("請完整填寫憑證");
         try {
-          const docSnap = await getDoc(doc(dbFirestore, "users_profile", user.uid));
-          if (docSnap.exists()) {
-            document.getElementById('user-role').textContent = `角色：${docSnap.data().role}`;
-          } else {
-            document.getElementById('user-role').textContent = "無業務資料記錄。";
-          }
-        } catch (error) {
-          console.error("Firestore read error:", error);
-          document.getElementById('user-role').textContent = "無法讀取業務資料。";
-        }
+            isLogin ? await signInWithEmailAndPassword(auth, e, p) : await createUserWithEmailAndPassword(auth, e, p);
+        } catch (err) { alert("驗證失敗: " + err.message); }
+    };
 
-      } else {
-        // 使用者未登入
-        authView.classList.remove('hidden');
-        dashboardView.classList.add('hidden');
-        authForm.reset();
-      }
-    });
-  </script>
+    document.getElementById('mode-btn').onclick = () => {
+        isLogin = !isLogin;
+        document.querySelector('#view-login h1').textContent = isLogin ? "Aevum Services" : "建立數位身份";
+        document.getElementById('login-btn').textContent = isLogin ? "驗證並登入" : "立即註冊";
+        document.getElementById('mode-btn').textContent = isLogin ? "切換至註冊模式" : "返回登入介面";
+    };
+
+    document.getElementById('logout-btn').onclick = () => signOut(auth);
+
+    document.getElementById('approve-btn').onclick = () => 
+        update(ref(rtdb, `verification_requests/${curUID}`), { status: 'approved', timestamp: Date.now() });
+
+    document.getElementById('deny-btn').onclick = () => 
+        update(ref(rtdb, `verification_requests/${curUID}`), { status: 'denied' });
+
+    document.getElementById('mock-btn').onclick = () => 
+        set(ref(rtdb, `verification_requests/${curUID}`), { 
+            site: "Aevum Lab 內部測試", 
+            status: "pending", 
+            timestamp: Date.now() 
+        });
+</script>
 </body>
 </html>
