@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Captcha Test</title>
+    <style>
+        :root {
+            --bg: #0d0d0d;
+            --accent: #00f2ff;
+            --glass: rgba(255, 255, 255, 0.05);
+            --font: 'JetBrains Mono', 'Roboto Mono', monospace;
+        }
+        body {
+            background: var(--bg);
+            color: white;
+            font-family: var(--font);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            margin: 0;
+            padding-top: 40px;
+            overflow: hidden;
+        }
+        .container {
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            padding: 25px;
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            width: 85%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        #display {
+            font-size: 3.8rem;
+            font-weight: 800;
+            letter-spacing: 12px;
+            margin-bottom: 25px;
+            color: var(--accent);
+            text-shadow: 0 0 15px rgba(0, 242, 255, 0.5);
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* 針對 Xperia 21:9 螢幕優化的輸入框 */
+        input {
+            background: rgba(0,0,0,0.7);
+            border: 2px solid var(--accent);
+            border-radius: 14px;
+            color: white;
+            font-size: 1.8rem;
+            padding: 12px;
+            width: 90%;
+            text-align: center;
+            outline: none;
+            caret-color: var(--accent);
+            text-transform: uppercase;
+        }
+        .stats {
+            margin-top: 25px;
+            font-size: 0.9rem;
+            color: #aaa;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 15px;
+        }
+        .stats span { color: var(--accent); font-weight: bold; }
+        #log-output {
+            margin-top: 20px;
+            width: 90%;
+            height: 200px;
+            background: #000;
+            color: #33ff33;
+            font-size: 0.75rem;
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 12px;
+            overflow-y: scroll;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+        }
+        .btn-reset {
+            margin-top: 15px;
+            background: none;
+            border: 1px solid #444;
+            color: #666;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="display">LOADING</div>
+    <input type="text" id="input" 
+           inputmode="url" 
+           lang="en" 
+           autocomplete="off" 
+           autocorrect="off" 
+           autocapitalize="none" 
+           spellcheck="false" 
+           placeholder="點擊開始">
+    
+    <div class="stats">
+        <div>AVG: <span id="avg-time">0.000</span>s</div>
+        <div>ACC: <span id="acc-rate">0%</span></div>
+    </div>
+    <button class="btn-reset" onclick="location.reload()">清除所有紀錄</button>
+</div>
+
+<textarea id="log-output" readonly placeholder="實戰 JSON Log 將在此產出..."></textarea>
+
+<script>
+    const display = document.getElementById('display');
+    const input = document.getElementById('input');
+    const logOutput = document.getElementById('log-output');
+    const avgSpan = document.getElementById('avg-time');
+    const accSpan = document.getElementById('acc-rate');
+    
+    let startTime, lastKeyTime, reactionTime;
+    let intervals = [];
+    let history = [];
+    let validCount = 0;
+    let totalTrials = 0;
+    let isFirstKeyInTrial = false;
+
+    // 1. 產生驗證碼並「立刻」啟動總計時器
+    function generateCode() {
+        const charset = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let code = "";
+        for (let i = 0; i < 4; i++) {
+            code += charset.charAt(Math.floor(Math.random() * charset.length));
+        }
+        display.innerText = code;
+        input.value = "";
+        
+        // 核心修正：從「圖案出現」的一刻開始計時
+        startTime = performance.now(); 
+        isFirstKeyInTrial = true;
+        intervals = [];
+    }
+
+    // 2. 捕捉第一個按鍵動作（反應時間）
+    input.addEventListener('keydown', (e) => {
+        if (isFirstKeyInTrial) {
+            const now = performance.now();
+            // 計算真正的「看圖反應時間」
+            reactionTime = (now - startTime).toFixed(1);
+            lastKeyTime = now;
+            isFirstKeyInTrial = false;
+        }
+    });
+
+    // 3. 處理輸入與間隔計時
+    input.addEventListener('input', (e) => {
+        const now = performance.now();
+        const val = input.value.toUpperCase();
+        const target = display.innerText;
+
+        // 紀錄擊鍵間隔 (Intervals)
+        if (val.length > 0) {
+            const gap = parseFloat((now - lastKeyTime).toFixed(1));
+            intervals.push(gap);
+            lastKeyTime = now;
+        }
+
+        // 當輸入滿 4 碼
+        if (val.length === 4) {
+            totalTrials++;
+            const totalTime = ((now - startTime) / 1000).toFixed(3);
+            
+            if (val === target) {
+                validCount++;
+                const record = {
+                    target: target,
+                    total_sec: totalTime,
+                    reaction_sec: (reactionTime / 1000).toFixed(3),
+                    intervals_ms: [...intervals],
+                    type_flow: getFlowType(target),
+                    backspaces: 0
+                };
+                history.push(record);
+                updateLog();
+            } else {
+                updateLog(); // 即使失敗也更新準確率
+            }
+            
+            // 轉下一題的延遲，避免連打錯誤
+            setTimeout(generateCode, 600);
+        }
+    });
+
+    function getFlowType(code) {
+        return code.split('').map(char => isNaN(char) ? 'L' : 'D').join('-');
+    }
+
+    function updateLog() {
+        const avg = history.length > 0 
+            ? (history.reduce((a, b) => a + parseFloat(b.total_sec), 0) / history.length).toFixed(3)
+            : "0.000";
+        
+        avgSpan.innerText = avg;
+        accSpan.innerText = Math.round((validCount / totalTrials) * 100) + "%";
+        
+        const report = {
+            device: "Xperia 10 V",
+            summary: {
+                total_valid_trials: validCount,
+                average_total_time_sec: avg,
+                average_reaction_time_sec: history.length > 0 
+                    ? (history.reduce((a, b) => a + parseFloat(b.reaction_sec), 0) / history.length).toFixed(3)
+                    : "0.000",
+                accuracy: accSpan.innerText
+            },
+            raw_trials: history
+        };
+        logOutput.value = JSON.stringify(report, null, 2);
+        logOutput.scrollTop = logOutput.scrollHeight;
+    }
+
+    // 初始化第一題
+    window.onload = () => {
+        generateCode();
+    };
+</script>
+
+</body>
+</html>
